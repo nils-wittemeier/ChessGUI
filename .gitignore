@@ -1,0 +1,4 @@
+.conda
+.vscode
+test.py
+*.pyc
