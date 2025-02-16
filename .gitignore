@@ -1,4 +1,4 @@
 .conda
 .vscode
-test.py
+.tmp
 *.pyc
