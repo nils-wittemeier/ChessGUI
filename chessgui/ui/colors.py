@@ -1,3 +1,5 @@
+""" Define color theme for ChessGUI"""
+
 _COLORS = {
     "board": {
         "background": {

@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter.font import Font
 
 from .svg import SVGContainer
-from ..colors import _COLORS
+from .colors import _COLORS
 
 
 class Square:
@@ -13,19 +13,19 @@ class Square:
 
     font_scale = 0.14
 
-    def __init__(self, canvas: tk.Canvas, rank: int, file: int):
+    def __init__(self, canvas: tk.Canvas, row: int, col: int):
         self._canvas = canvas
         self._size = 1
-        self._x = file
-        self._y = rank
+        self._x = col
+        self._y = row
         self._id = canvas.create_rectangle(0, 0, 1, 1, outline="")
-        self._row = rank
-        self._col = file
+        self._row = row
+        self._col = col
         self._is_highlighted = False
         self.last_move = False
         self.selected = False
         self.move_highlight = None
-        self.color = "light" if (rank + file) % 2 == 0 else "dark"
+        self.color = "light" if (row + col) % 2 == 0 else "dark"
         self._canvas.bind("<Configure>", self.draw, add=True)
 
         self.font = Font(
@@ -37,8 +37,8 @@ class Square:
         self.rank_label = None
         self.file_label = None
         self.add_label(
-            rank=file if rank == 0 else None,
-            file=rank if file == 0 else None,
+            rank=col if row == 7 else None,
+            file=row if col == 0 else None,
         )
 
         self._circlesvg = SVGContainer(
@@ -48,6 +48,17 @@ class Square:
             posy=self._y + self._size / 2,
             scale=1/8)
         self._circlesvg.hide()
+
+        self._dotsvg = SVGContainer(
+            Path("chessgui/icons/Dot.svg"),
+            self._canvas,
+            posx=self._x + self._size / 2,
+            posy=self._y + self._size / 2,
+            scale=1/8)
+        self._dotsvg.hide()
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: ({self._row}, {self._col})>'
 
     @property
     def color(self):
@@ -99,19 +110,14 @@ class Square:
         self.selected = False
         self.refresh_color()
 
-    def toggle_move_target(self):
+    def show_move_target(self, is_caputre):
         """Toggle highlighting of selected square"""
-        if self._circlesvg.is_visible:
-            self._circlesvg.hide()
-        else:
-            self._circlesvg.show()
-        self.refresh_color()
+        getattr(self, f"_{'circle' if is_caputre else 'dot'}svg").show()
 
     def hide_move_target(self):
         """Toggle highlighting of selected square"""
-        if self._circlesvg.is_visible:
-            self._circlesvg.hide()
-        self.refresh_color()
+        self._circlesvg.hide()
+        self._dotsvg.hide()
 
     def toggle_moved(self):
         """Toggle highlighting of selected square"""
@@ -124,18 +130,19 @@ class Square:
     def to_algebraic(self):
         """Return algebraic notation for current square"""
         row, col = self.to_index()
-        return "abcdefgh"[row] + str(8 - col)
+        return "abcdefgh"[col] + str(8 - row)
 
     def draw(self, event):
         self._size = event.width / 8
         self._x = x0 = self.col * self._size
         x1 = (self.col + 1) * self._size
-        self._y = y0 = (7 - self.row) * self._size
-        y1 = (8 - self.row) * self._size
+        self._y = y0 = self.row * self._size
+        y1 = (self.row + 1) * self._size
 
         self._canvas.coords(self._id, x0, y0, x1, y1)
         self.font.configure(size=int(self.font_scale * self._size))
         self._circlesvg.update_pos(x0 + self._size / 2, y0 + self._size / 2)
+        self._dotsvg.update_pos(x0 + self._size / 2, y0 + self._size / 2)
 
         if self.rank_label is not None:
             self._canvas.moveto(

@@ -1,17 +1,17 @@
-"""
+""" 
 This module provides a graphical user interface (GUI) for playing chess, including the main GameUI
 class which manages the overall layout and interaction elements of the game.
 """
 
+import tkinter as tk
 from functools import partial
 
-import tkinter as tk
-
-from .promotion_selector import PromotionSelector
-from ..game import GameState, Move
+from ..game.logic import get_possible_moves_from
+from ..game.piece import ChessPiece
+from ..game.state import GameState, Move
 from .board import Board
+from .promotion_selector import PromotionSelector
 from .square import Square
-from ..piece import ChessPiece
 
 
 class GameUI:
@@ -50,7 +50,9 @@ class GameUI:
         self.board._canvas.bind("<Button-1>", self.on_click_callback)
 
         self.white_selector = PromotionSelector(self.content_frame, (6, 1), True, False)
-        self.black_selector = PromotionSelector(self.content_frame, (1, 6), False, False)
+        self.black_selector = PromotionSelector(
+            self.content_frame, (1, 6), False, False
+        )
 
     def enforce_aspect_ratio(self, event: tk.Event):
         """
@@ -74,23 +76,18 @@ class GameUI:
         if self.selected_square is None:
             self.select_square(square)
         else:
-            move = Move(
-                self.game_state.get_piece_on(*self.selected_square.coords),
-                self.selected_square.coords,
-                square.coords,
-                self.game_state.get_piece_on(*square.coords),
-            )
             # Check if moving from the already selected to the newly clicked square is a legal move
             self.clear_selection()
-            if move in self._possible_moves:
-                if move.is_promotion:
-                    selector = getattr(self, f"{self.game_state.active_color}_selector")
-                    selector.open(move.target, callback=partial(self.move_piece, move))
-                else:
-                    self.move_piece(move)
+            for move in self._possible_moves:
+                if square.coords == move.target:
+                    if move.is_promotion:
+                        selector = getattr(self, f"{self.game_state.active_color}_selector")
+                        selector.open(move.target, callback=partial(self.move_piece, move))
+                    else:
+                        self.move_piece(move)
+                    break
             else:
                 self.on_click_callback(event)
-            
 
     def select_square(self, square: Square) -> None:
         """Select a square on the chess board to highlight possible moves
@@ -100,13 +97,11 @@ class GameUI:
         """
         # Check if selected square is occupied and by a piece of the active color
         self.board.hide_moves()
-        piece = self.game_state.get_piece_on(square.row, square.col)
+        piece = self.game_state.get_piece_on(*square.coords)
         if piece is not None:
             if piece.color == self.game_state.get_active_color():
                 self.board.select_square(square.row, square.col)
-                self._possible_moves = self.game_state.get_possible_moves_from(
-                    square.row, square.col
-                )
+                self._possible_moves = get_possible_moves_from(square.coords, self.game_state)
                 self.board.show_moves(self._possible_moves)
                 self.selected_square = square
 
@@ -116,6 +111,7 @@ class GameUI:
         self.board.clear_selection()
         self.selected_square = None
 
-    def move_piece(self, move : Move, promote_to: ChessPiece = None):
-        self.game_state.make_move(move, promote_to)
-        self.board.make_move(move, promote_to)
+    def move_piece(self, move: Move, promote_to: ChessPiece = None):
+        move.promote_to = promote_to
+        self.game_state.make_move(move)
+        self.board.make_move(move)

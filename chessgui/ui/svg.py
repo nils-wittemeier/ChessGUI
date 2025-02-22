@@ -14,7 +14,7 @@ import tkinter as tk
 from pathlib import Path
 
 import tksvg
-from ..piece import ChessPiece
+from ..game.piece import ChessPiece
 
 _PIECE_SVGS = {
     "white": {
@@ -129,7 +129,7 @@ class ChessPieceSVG(SVGContainer):
 
     @property
     def posy(self):
-        return (7 - self._piece.row + 0.5) * self.size
+        return (self._piece.row + 0.5) * self.size
 
     def move_to(self, row, col):
         self._piece.row = row

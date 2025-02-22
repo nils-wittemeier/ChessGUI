@@ -2,14 +2,13 @@
     when promoting a pawn."""
 
 from pathlib import Path
-from math import ceil, floor
 
 import tkinter as tk
 import tksvg
 from stockfish import Stockfish
 
 from .svg import ChessPieceSVG
-from ..piece import ChessPiece
+from ..game.piece import ChessPiece
 
 
 class PromotionSelector:
@@ -37,7 +36,7 @@ class PromotionSelector:
         self._pieces = []
         pieces = "QRBN" if color_is_white else "nbrq"
         for i, p in enumerate(pieces):
-            piece = ChessPiece(Stockfish.Piece(p), 7-i, 0)
+            piece = ChessPiece(Stockfish.Piece(p), 7 - i, 0)
             self._pieces.append(piece)
             self._svgs.append(ChessPieceSVG(piece, self._options_canvas, 1.0))
 
@@ -48,11 +47,11 @@ class PromotionSelector:
     @property
     def _is_at_top(self):
         return self.position[0] > 4
-    
+
     @property
     def _width(self):
         return self._canvas.winfo_width()
-    
+
     def select(self, event):
         """Callback for piece selection
 

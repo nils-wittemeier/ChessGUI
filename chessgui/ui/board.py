@@ -1,11 +1,12 @@
 """ This module implements a chess board as a graphical elements"""
 
 import tkinter as tk
-from ..moves import Move
+
+from ..game.moves import Move
+from ..game.piece import ChessPiece
+from ..game.state import GameState
 from ..ui.square import Square
-from ..game import GameState
 from .svg import ChessPieceSVG
-from ..piece import ChessPiece
 
 
 class Board:
@@ -60,7 +61,7 @@ class Board:
             tuple[int] : The row and column index
         """
         col = int(8 * x / self.size)
-        row = 8 - int(8 * y / self.size) - 1
+        row = int(8 * y / self.size)
         return row, col
 
     def get_square_from_coords(self, x: float, y: float) -> Square:
@@ -103,24 +104,27 @@ class Board:
         for square in self._squares:
             square.clear_selected()
 
-    def show_moves(self, moves):
-        """Highlight possible moves"""
+    def show_moves(self, moves : list[Move]):
+        """Highlight possible moves."""
         for move in moves:
-            self.get_square(*move.target).toggle_move_target()
+            self.get_square(*move.target).show_move_target(move.is_capture)
 
     def hide_moves(self):
-        """Highlight possible moves"""
-        print('hide_moves')
+        """Hide possible moves that were highlight."""
         for square in self._squares:
             square.hide_move_target()
 
 
-    def make_move(self, move: Move, promote_to=ChessPiece):
+    def make_move(self, move: Move):
+        """Make a move on the chess board"""
         piece = self._pieces.pop(move.origin)
-        if promote_to:
-            piece.promote(promote_to)
+        if move.is_promotion:
+            piece.promote(move.promote_to)
         if move.is_capture:
             captured_piece = self._pieces.pop(move.target)
             captured_piece.hide()
         self._pieces[move.target] = piece
         piece.move_to(*move.target)
+        if move.is_castling:
+            print(move.rook_move)
+            self.make_move(move.rook_move)
