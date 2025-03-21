@@ -1,4 +1,4 @@
-""" This module implements a chess board as a graphical elements"""
+"""This module implements a chess board as a graphical elements"""
 
 import tkinter as tk
 
@@ -29,12 +29,14 @@ class Board:
         Args:
             game_state (GameState): _description_
         """
+        for piece in self._pieces.values():
+            piece.remove()
         self._pieces = {}
         for row in range(8):
             for col in range(8):
                 piece = game_state.get_piece_on(row, col)
                 if piece is not None:
-                    self._pieces[(row,col)] = ChessPieceSVG(piece, self._canvas, 1 / 8)
+                    self._pieces[(row, col)] = ChessPieceSVG(piece, self._canvas, (1 / 8, 1 / 8))
 
     def get_square(self, row: int, col: int) -> Square:
         """Return the square in a given row and column.
@@ -104,7 +106,7 @@ class Board:
         for square in self._squares:
             square.clear_selected()
 
-    def show_moves(self, moves : list[Move]):
+    def show_moves(self, moves: list[Move]):
         """Highlight possible moves."""
         for move in moves:
             self.get_square(*move.target).show_move_target(move.is_capture)
@@ -114,17 +116,15 @@ class Board:
         for square in self._squares:
             square.hide_move_target()
 
-
     def make_move(self, move: Move):
         """Make a move on the chess board"""
         piece = self._pieces.pop(move.origin)
         if move.is_promotion:
             piece.promote(move.promote_to)
         if move.is_capture:
-            captured_piece = self._pieces.pop(move.target)
-            captured_piece.hide()
+            captured_piece = self._pieces.pop(move.captured_piece.coords)
+            captured_piece.remove()
         self._pieces[move.target] = piece
         piece.move_to(*move.target)
         if move.is_castling:
-            print(move.rook_move)
             self.make_move(move.rook_move)

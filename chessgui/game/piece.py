@@ -1,4 +1,4 @@
-""" Implement chess piece"""
+"""Implement chess piece"""
 
 from stockfish import Stockfish
 
@@ -16,20 +16,22 @@ class ChessPiece:
             self._type = Stockfish.Piece(piece)
         else:
             if not isinstance(piece, Stockfish.Piece):
-                raise ValueError(f'Can not create ChessPiece using a piece of type {type(piece)}.')
+                raise ValueError(f"Can not create ChessPiece using a piece of type {type(piece)}.")
             self._type = piece
         self.row = row
         self.col = col
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: {self.color} {self.name} ({self.row}, {self.col})>"
-    
+
     def __eq__(self, value):
         if value is None:
             return False
         if not isinstance(value, ChessPiece):
-            raise ValueError('Equality can only be evaluated with another instance of the ChessPiece class.')
-        return (self._type == value._type and self.row == value.row and self.col == value.col)
+            raise ValueError(
+                "Equality can only be evaluated with another instance of the ChessPiece class."
+            )
+        return self._type == value._type and self.row == value.row and self.col == value.col
 
     @property
     def coords(self):
@@ -72,6 +74,27 @@ class ChessPiece:
             "Pawn": "P",
         }[self.name]
         return c.upper() if self.is_white else c.lower()
+
+    @property
+    def utf8_symbol(self) -> str:
+        return {
+            "white": {
+                "King": "♔",
+                "Queen": "♕",
+                "Rook": "♖",
+                "Bishop": "♗",
+                "Knight": "♘",
+                "Pawn": "♙",
+            },
+            "black": {
+                "King": "♚",
+                "Queen": "♛",
+                "Rook": "♜",
+                "Bishop": "♝",
+                "Knight": "♞",
+                "Pawn": "♟",
+            },
+        }[self.color][self.name]
 
     def update_position(self, row, col):
         """Update position"""

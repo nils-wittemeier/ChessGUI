@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> -->
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="5" height="5">
+  <g style="opacity:1; fill:#272932; fill-rule:evenodd; fill-opacity:1; stroke:#272932; stroke-width:0.155071; stroke-linecap:round; stroke-linejoin:round; stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0.,0.235)matrix(-1,0,0,1,5.05,0)">
+      <path d="M 3.95,4.25 H 3.45 V 0.08 H 3.95 z" />
+      <path d="M 3.35,2.17 1.25,4.25 V 0.08 z" />
+  </g>
+</svg>

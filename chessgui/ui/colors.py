@@ -1,4 +1,4 @@
-""" Define color theme for ChessGUI"""
+"""Define color theme for ChessGUI"""
 
 _COLORS = {
     "board": {
@@ -11,6 +11,6 @@ _COLORS = {
         "foreground": {"light": "#88684E", "dark": "#E3E1CE"},
         "dot": {"light": "#9b9a8dff", "dark": "#5d4735ff"},
     },
-    "evalbar": {"light": "#E3E1CE", "dark": "#88684E"},
+    "evalbar": {"light": "#FFFFFF", "dark": "#272932"},
     "pieces": {"light": "#FFFFFF", "dark": "#272932"},
 }

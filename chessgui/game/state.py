@@ -1,69 +1,18 @@
-""" This module defines the Game class, which handles the current games state
-and check that the game rules. """
+"""This module defines the Game class, which handles the current games state
+and check that the game rules."""
 
 from pathlib import Path
 from typing import Optional
 
-from stockfish import Stockfish
-
+from .utils import index_to_algebraic, algebraic_to_index
 from .piece import ChessPiece
-from .moves import Move
 
 _STARTING_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-_STARTING_POS = "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1"
-# _STARTING_POS = "8/P6k/8/8/8/8/K6p/8 w - - 0 1"
+# _STARTING_POS = "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1"
+_STARTING_POS = "8/P6k/8/8/8/8/K6p/8 w - - 0 1"
+# _STARTING_POS = "7k/Q7/6K1/8/8/8/8/8 w - - 0 1"
+# _STARTING_POS = "7K/q7/6k1/8/8/8/8/8 w - - 0 1"
 # _STARTING_POS = "8/8/8/5k2/3K4/8/8/8 w - - 0 1"
-
-_stockfish_root = Path("/Users/Juijan/stockfish")
-_stockfish_exe = _stockfish_root / "stockfish-windows-x86-64-avx2.exe"
-
-
-class MoveTreeNode:
-    """Implementation of double-linked graph"""
-
-    def __init__(self, parent):
-        self._parent = parent
-        self._children = {}
-        self._order: list[Move] = []
-
-    def add_child(self, move: Move):
-        """Add a child to this node of the move tree"""
-        if move not in self._children:
-            self._children[move] = MoveTreeNode(self)
-            self._order.append(move)
-
-    def remove_child(self, move: Move):
-        """Remove a child to this node of the move tree"""
-        if move in self._children:
-            self._children.pop(move)
-            self._order.remove(move)
-
-    def get_child(self, move: Optional[Move] = None) -> str:
-        """Retrieve child of this node"""
-        if move is None:
-            move = self._order[0]
-        return self._children[move]
-
-
-class MoveTree:
-    """Manages move tree, keeps track of current position and moving along the tree."""
-
-    def __init__(self):
-        self._root = MoveTreeNode(None)
-        self._tip = self._root
-
-    def add_child(self, move: str):
-        """Add child at currently active tip"""
-        self._tip.add_child(move)
-        self._tip = self._tip.children[move]
-
-    def move_up(self):
-        """Move up one level"""
-        self._tip = self._tip.parent
-
-    def move_down(self, move: str | None = None):
-        """Move down on level"""
-        self._tip = self._tip.get_child(move)
 
 
 class GameState:
@@ -71,17 +20,17 @@ class GameState:
 
     def __init__(self):
         self._pieces = [None] * 64
-        self._is_white_active = True
-        self._en_passant_target = None
+        self.is_white_active = True
+        self.en_passant_target = None
         self.castling_rights = {"K": True, "Q": True, "k": True, "q": True}
-        self._moves = 0
-        self._half_moves = 0
-        self._move_graph = MoveTree
-        self._current_moves = []
-        self._starting_pos = _STARTING_POS
-        self.load_fen_string(self._starting_pos)
+        self.moves = 0
+        self.half_moves = 0
+        self.load_fen_string(_STARTING_POS)
 
-    def load_fen_string(self, fen_str: str) -> None:
+    def __hash__(self):
+        return hash(self.to_fen_string())
+
+    def load_fen_string(self, fen_str: str):
         """
         Load game state from a FEN string
 
@@ -98,7 +47,7 @@ class GameState:
             for c in s:
                 if c.isdigit():
                     for i in range(int(c)):
-                        self.place_piece_on(row, col+i, None)
+                        self.place_piece_on(row, col + i, None)
                     col += int(c)
                 else:
                     piece = ChessPiece(c, row, col)
@@ -106,7 +55,7 @@ class GameState:
                     col += 1
 
         # Parse active color
-        self._is_white_active = fen_blocks[1] == "w"
+        self.is_white_active = fen_blocks[1] == "w"
 
         # Parse castling rights
         for key in self.castling_rights:
@@ -114,46 +63,83 @@ class GameState:
 
         # Parse en passant target square
         if fen_blocks[3] == "-":
-            self._en_passant_target = None
+            self.en_passant_target = None
         else:
-            self._en_passant_target = self.algebraic_to_index(fen_blocks[3])
+            self.en_passant_target = algebraic_to_index(fen_blocks[3])
 
         # Parse number of moves and half moves
-        self._moves = int(fen_blocks[4])
-        self._half_moves = int(fen_blocks[5])
+        self.half_moves = int(fen_blocks[4])
+        self.moves = int(fen_blocks[5])
+
+        return self
 
     @staticmethod
-    def algebraic_to_index(pos: str) -> tuple[int] | None:
+    def from_fen_string(fen_str: Optional[str] = None):
         """
-        Convert square identifier from algebraic notation to pair of zero-based indices.
+        Load game state from a FEN string
 
         Args:
-            pos (str): The identifier in algebraic notation.
-
-        Returns:
-            row (int): The zero-based row index of the square.
-            col (int): The zero-based column index of the square.
+            fen_str (str):  FEN string of board position.
         """
-        row = int(pos[1]) - 1
-        col = "abcdefgh".index(pos[0])
-        return row, col
+        game_state = GameState()
+        # Split fen string into blocks
+        if fen_str is not None:
+            game_state.load_fen_string(fen_str)
+        else:
+            game_state.load_fen_string(_STARTING_POS)
 
-    @staticmethod
-    def index_to_algebraic(row: int, col: int) -> str:
-        """
-        Convert a pair of zero-based indices to algebraic notation.
+        return game_state
 
-        Algebraic notations uses letters a, b, c, d, e, f, g, and h to indentify
-        the columns followed by the one-based index of the row.
+    def to_fen_string(self) -> str:
+        s = ""
+        for row in range(8):
+            n_pawns = 0
+            if row > 0:
+                s += "/"
+            for col in range(8):
+                piece = self.get_piece_on(row, col)
+                if piece is not None:
+                    if n_pawns > 0:
+                        s += f"{n_pawns}"
+                        n_pawns = 0
+                    s += piece.symbol
+                else:
+                    n_pawns += 1
+            if n_pawns > 0:
+                s += f"{n_pawns}"
+        s += " "
+        s += "w" if self.is_white_active else "b"
+        s += " "
+        castling_allow = False
+        for k, v in self.castling_rights.items():
+            if v:
+                s += k
+                castling_allow = True
+        if not castling_allow:
+            s += "-"
+        s += " "
+        if self.en_passant_target is not None:
+            s += index_to_algebraic(*self.en_passant_target)
+        else:
+            s += "-"
+        s += f" {self.half_moves} {self.moves}"
+        return s
 
-        Args:
-            row (int): The zero-based row index of the square.
-            col (int): The zero-based column index of the square.
+    def __repr__(self) -> str:
+        out_lines = []
+        for row in range(8):
+            out_lines.append("+---" * 8 + "+")
+            line = "|"
+            for col in range(8):
+                piece = self.get_piece_on(row, col)
+                if piece is not None:
+                    line += f" {piece.utf8_symbol} |"
+                else:
+                    line += "   |"
+            out_lines.append(line)
+        out_lines.append("+---" * 8 + "+")
 
-        Returns:
-            pos (str): The identifier in algebraic notation.
-        """
-        return "abcdefgh"[col] + str(8 - row)
+        return "\n".join(out_lines)
 
     def get_piece_on(self, row: int, col: int) -> ChessPiece:
         """
@@ -174,7 +160,7 @@ class GameState:
 
     def is_en_passant_target(self, row: int, col: int):
         """Check whether a given square can be targeted by en passant capture"""
-        return self._en_passant_target == (row, col)
+        return self.en_passant_target == (row, col)
 
     def place_piece_on(self, row: int, col: int, piece: ChessPiece) -> None:
         """
@@ -191,42 +177,12 @@ class GameState:
 
     def get_active_color(self) -> str:
         """The currently active color, whose turn it is to move."""
-        return "white" if self._is_white_active else "black"
-
-    @property
-    def is_white_active(self) -> bool:
-        """Whether white is the currently active color
-
-        Returns:
-            bool: Whether white is the currently active color
-        """
-        return self._is_white_active
+        return "white" if self.is_white_active else "black"
 
     @property
     def active_color(self) -> str:
         """Color which has to make the next move."""
-        return "white" if self._is_white_active else "black"
-
-    def make_move(self, move: Move):
-        """Implement the logic to check if the move is allowed and update the board accordingly
-
-        Args:
-            move (_type_): # TODO
-        """
-        self._current_moves.append(move)
-        # self._move_graph.current_tip.append(move)
-        self._is_white_active = not self._is_white_active
-        if move.is_castling:
-            if move.piece.is_white:
-                self.castling_rights['K'] = False
-                self.castling_rights['Q'] = False
-            else:
-                self.castling_rights['k'] = False
-                self.castling_rights['q'] = False
-            self.place_piece_on(*move.rook_move.target, self.get_piece_on(*move.rook_move.origin))
-            self.place_piece_on(*move.rook_move.origin, None)
-        self.place_piece_on(*move.target, self.get_piece_on(*move.origin))
-        self.place_piece_on(*move.origin, None)
+        return "white" if self.is_white_active else "black"
 
     def is_enpassant_target(self, row, col):
         """
@@ -240,11 +196,14 @@ class GameState:
             is_en_passant_target (bool): whether a given square can be target for en passant
                                          caputre.
         """
-        if (row, col) == self._en_passant_target:
+        if (row, col) == self.en_passant_target:
             return True
         return False
 
-    def find_king(self, color) -> tuple[int, int]:
+    def find_king(
+        self,
+        color: str,
+    ) -> tuple[int, int]:
         for row in range(8):
             for col in range(8):
                 if self.is_occupied(row, col):
@@ -255,3 +214,5 @@ class GameState:
         raise ValueError(
             f"{self.__class__.__name__}._find_king: Can not find the {color} king on the board."
         )
+
+    # def is_over(self):

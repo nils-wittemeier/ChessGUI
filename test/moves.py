@@ -5,6 +5,7 @@ from parameterized import parameterized
 
 from chessgui.game.moves import Move
 from chessgui.game.piece import ChessPiece
+from chessgui.errors import IllegalMoveError
 
 
 class TestMove(unittest.TestCase):
@@ -15,7 +16,7 @@ class TestMove(unittest.TestCase):
         target = (3, 3)
         piece = ChessPiece("B", *origin)
 
-        move = Move(piece, origin, target)
+        move = Move(piece, target)
         self.assertEqual(move.piece, piece)
         self.assertEqual(move.origin, origin)
         self.assertEqual(move.target, target)
@@ -26,93 +27,41 @@ class TestMove(unittest.TestCase):
         """Test initialization for moves that capture of a piece"""
         piece = ChessPiece("B", 0, 0)
         captured_piece = ChessPiece("b", 1, 0)
-        move = Move(piece, (0, 0), (1, 0), captured_piece=captured_piece)
+        move = Move(piece, (1, 0), captured_piece=captured_piece)
         self.assertEqual(move.captured_piece, captured_piece)
 
     def test_move_with_promotion(self):
         """Test initialization for moves with piece promotion"""
         piece = ChessPiece("P", 6, 0)
         promote_to = ChessPiece("B", 7, 0)
-        move = Move(piece, (6, 0), (7, 0), promote_to=promote_to)
+        move = Move(piece, (7, 0), promote_to=promote_to)
         self.assertEqual(move.promote_to, promote_to)
 
     @parameterized.expand(
         [
-            [
-                "b",
-                "B",
-                None,
-                (1, 2),
-                (1, 5),
-                (1, 3),
-                (1, 3),
-            ],  # Origin doesn't match piece position
-            [
-                "b",
-                "B",
-                None,
-                (0, 0),
-                (0, 0),
-                (6, 1),
-                (1, 3),
-            ],  # Captured piece not on target
-            [
-                "b",
-                "B",
-                None,
-                (1, 3),
-                (1, 3),
-                (1, 3),
-                (1, 3),
-            ],  # Origin and destination are the same
-            [
-                "b",
-                "n",
-                None,
-                (1, 3),
-                (1, 3),
-                (1, 3),
-                (1, 3),
-            ],  # Captured piece is of the same color
-            [
-                "b",
-                None,
-                "q",
-                (3, 3),
-                (3, 3),
-                (1, 1),
-                (1, 1),
-            ],  # Promotion of piece other than pawn
-            [
-                "p",
-                None,
-                "Q",
-                (6, 3),
-                (6, 3),
-                (7, 3),
-                (7, 3),
-            ],  # Promotion to different color
-            [
-                "p",
-                None,
-                "b",
-                (5, 3),
-                (5, 3),
-                (6, 3),
-                (6, 3),
-            ],  # Promotion not on 1st/8th rank
+            # Captured piece not on target
+            ["b", "B", None, (0, 0), (6, 1), (1, 3)],
+            # Origin and destination are the same
+            ["b", "B", None, (1, 3), (1, 3), (1, 3)],
+            # Captured piece is of the same color
+            ["b", "n", None, (1, 3), (1, 3), (1, 3)],
+            # Promotion of piece other than pawn
+            ["b", None, "q", (3, 3), (1, 1), (1, 1)],
+            # Promotion to different color
+            ["p", None, "Q", (6, 3), (7, 3), (7, 3)],
+            # Promotion not on 1st/8th rank
+            ["p", None, "b", (5, 3), (6, 3), (6, 3)],
         ]
     )
     def test_piece_invalid_initialization(self, *args):
         kwargs = {}
-        kwargs["origin"] = args[4]
-        kwargs["target"] = args[6]
+        kwargs["target"] = args[4]
         kwargs["piece"] = ChessPiece(args[0], *args[3])
         if args[1] is not None:
             kwargs["captured_piece"] = ChessPiece(args[1], *args[5])
         if args[2] is not None:
             kwargs["promote_to"] = ChessPiece(args[2], *args[5])
-        with self.assertRaises(ValueError):
+        with self.assertRaises((ValueError, IllegalMoveError)):
             Move(**kwargs)
 
     def test_move_repr(self):
@@ -121,7 +70,7 @@ class TestMove(unittest.TestCase):
         piece = ChessPiece("P", *origin)
         captured_piece = ChessPiece("p", *target)
         promote_to = ChessPiece("Q", *target)
-        move = Move(piece, origin, target, captured_piece, promote_to)
+        move = Move(piece, target, captured_piece, promote_to)
         self.assertEqual(
             repr(move),
             "<Move: Pawn moving from (6, 2) to (7, 3) ; capturing Pawn ; promoting to Queen>",
@@ -144,7 +93,6 @@ class TestMove(unittest.TestCase):
         def create_move(*args):
             kwargs = {}
             kwargs["piece"] = ChessPiece(args[0], *args[3])
-            kwargs["origin"] = args[3]
             kwargs["target"] = args[4]
             if args[1] is not None:
                 kwargs["captured_piece"] = ChessPiece(args[1], *args[4])

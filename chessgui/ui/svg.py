@@ -12,8 +12,10 @@ piece type for convenience.
 
 import tkinter as tk
 from pathlib import Path
+from typing import Optional
 
 import tksvg
+
 from ..game.piece import ChessPiece
 
 _PIECE_SVGS = {
@@ -37,17 +39,26 @@ _PIECE_SVGS = {
 
 
 class SVGContainer:
-    def __init__(self, file, canvas: tk.Canvas, posx: int, posy: int, scale: float):
+    def __init__(
+        self,
+        file,
+        canvas: tk.Canvas,
+        posx: float,
+        posy: float,
+        scale: tuple[float, float],
+        centered: Optional[bool] = False
+    ):
         self._canvas = canvas
         self._posx = posx
         self._posy = posy
         self._scale = scale
+        self._centered = centered
 
         self._svg_string = file.read_text("UTF-8")
         self._svg_img = None
         self._svg_handle = None
         self._is_visible = True
-        
+
         self.scale_svg(100)
         self._canvas.bind("<Configure>", self.draw, add=True)
 
@@ -59,17 +70,23 @@ class SVGContainer:
     @property
     def posx(self):
         """x coordinate"""
-        return self._posx
+        if self._centered:
+            return self._canvas.winfo_width() * 0.5
+        else:
+            return self._posx
 
     @property
     def posy(self):
         """y coordinate"""
-        return self._posy
+        if self._centered:
+            return self._canvas.winfo_height() * 0.5
+        else:
+            return self._posy
 
     def scale_svg(self, size: int) -> tksvg.SvgImage:
         """SVG string for piece render."""
+        self._svg_img = tksvg.SvgImage(data=self._svg_string, scaletoheight=size)
         if self._is_visible:
-            self._svg_img = tksvg.SvgImage(data=self._svg_string, scaletoheight=size)
             self._svg_handle = self._canvas.create_image(
                 self.posx,
                 self.posy,
@@ -90,13 +107,13 @@ class SVGContainer:
         Returns:
             None
         """
-        self.scale_svg(event.width * self._scale)
+        self.scale_svg(event.height * self._scale[1] * 0.95)
 
     def show(self):
         self._is_visible = True
         self.scale_svg(self.size)
 
-    def hide(self):
+    def remove(self):
         self._canvas.delete(self._svg_handle)
         self._is_visible = False
 
@@ -123,13 +140,16 @@ class ChessPieceSVG(SVGContainer):
             scale,
         )
 
+    def __repr__(self):
+        return self._piece.type.__repr__
+
     @property
     def posx(self):
-        return (self._piece.col + 0.5) * self.size
+        return self._canvas.winfo_width() * self._scale[0] * (self._piece.col + 0.5)
 
     @property
     def posy(self):
-        return (self._piece.row + 0.5) * self.size
+        return self._canvas.winfo_height() * self._scale[1] * (self._piece.row + 0.5)
 
     def move_to(self, row, col):
         self._piece.row = row

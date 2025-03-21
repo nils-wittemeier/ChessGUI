@@ -1,4 +1,5 @@
-""" This module implements the squares on the chess board as a graphical elements"""
+"""This module implements the squares on the chess board as a graphical elements"""
+
 from pathlib import Path
 
 import tkinter as tk
@@ -29,7 +30,6 @@ class Square:
         self._canvas.bind("<Configure>", self.draw, add=True)
 
         self.font = Font(
-            family="Roboto",
             size=int(self.font_scale * self._canvas.winfo_height()),
             weight="bold",
         )
@@ -46,19 +46,21 @@ class Square:
             self._canvas,
             posx=self._x + self._size / 2,
             posy=self._y + self._size / 2,
-            scale=1/8)
-        self._circlesvg.hide()
+            scale=(1 / 8, 1 / 8),
+        )
+        self._circlesvg.remove()
 
         self._dotsvg = SVGContainer(
             Path("chessgui/icons/Dot.svg"),
             self._canvas,
             posx=self._x + self._size / 2,
             posy=self._y + self._size / 2,
-            scale=1/8)
-        self._dotsvg.hide()
+            scale=(1 / 8, 1 / 8),
+        )
+        self._dotsvg.remove()
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}: ({self._row}, {self._col})>'
+        return f"<{self.__class__.__name__}: ({self._row}, {self._col})>"
 
     @property
     def color(self):
@@ -96,9 +98,7 @@ class Square:
         else:
             hl_type = "none"
 
-        self._canvas.itemconfig(
-            self._id, fill=_COLORS["board"]["background"][hl_type][self.color]
-        )
+        self._canvas.itemconfig(self._id, fill=_COLORS["board"]["background"][hl_type][self.color])
 
     def toggle_selected(self):
         """Toggle highlighting of selected square"""
@@ -116,8 +116,8 @@ class Square:
 
     def hide_move_target(self):
         """Toggle highlighting of selected square"""
-        self._circlesvg.hide()
-        self._dotsvg.hide()
+        self._circlesvg.remove()
+        self._dotsvg.remove()
 
     def toggle_moved(self):
         """Toggle highlighting of selected square"""
@@ -146,7 +146,7 @@ class Square:
 
         if self.rank_label is not None:
             self._canvas.moveto(
-                self.rank_label, x0 + int(0.9 * self._size), y0 + int(0.83 * self._size)
+                self.rank_label, x0 + int(0.83 * self._size), y0 + int(0.78 * self._size)
             )
 
         if self.file_label is not None:
@@ -172,7 +172,7 @@ class Square:
             self.file_label = self._canvas.create_text(
                 int(0.04 * self._size),
                 int(0.04 * self._size),
-                text=str(file + 1),
+                text=str(8 - file),
                 font=self.font,
                 anchor="nw",
                 fill=_COLORS["board"]["foreground"][self._color],

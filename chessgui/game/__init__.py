@@ -2,4 +2,3 @@
 from . import piece
 from . import state
 from . import moves
-from . import logic

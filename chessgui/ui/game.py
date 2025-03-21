@@ -1,17 +1,28 @@
-""" 
+"""
 This module provides a graphical user interface (GUI) for playing chess, including the main GameUI
 class which manages the overall layout and interaction elements of the game.
 """
 
+from pathlib import Path
 import tkinter as tk
 from functools import partial
+from multiprocessing import Process
 
-from ..game.logic import get_possible_moves_from
+from stockfish import Stockfish
+
 from ..game.piece import ChessPiece
-from ..game.state import GameState, Move
+from ..game.game import ChessGame
+from ..game.tree import GameTreeNode
+from ..game.moves import Move
 from .board import Board
+from .eval_bar import EvalBar
+from .sidebar_right import SecondSideBar
 from .promotion_selector import PromotionSelector
 from .square import Square
+from .result_screen import GameResultScreen
+
+_stockfish_root = Path("/Users/Juijan/stockfish")
+_stockfish_exe = _stockfish_root / "stockfish-windows-x86-64-avx2.exe"
 
 
 class GameUI:
@@ -28,31 +39,40 @@ class GameUI:
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
 
-        self.padding_frame = tk.Frame(parent, background="bisque")
+        self.padding_frame = tk.Frame(parent, background="#eeeeee")
         self.padding_frame.grid(row=0, column=0, sticky="nsew")
         self.padding_frame.rowconfigure(0, weight=1)
         self.padding_frame.columnconfigure(0, weight=1)
         self.padding_frame.bind("<Configure>", self.enforce_aspect_ratio)
 
-        self.content_frame = tk.Frame(self.padding_frame, highlightthickness=0)
-        self.content_frame.grid(row=0, column=0, sticky="nsew")
-        self.content_frame.rowconfigure(0, weight=1)
-        self.content_frame.columnconfigure(0, weight=1)
+        self.board_frame = tk.Frame(self.padding_frame, highlightthickness=0)
+        self.board_frame.rowconfigure(0, weight=1)
+        self.board_frame.columnconfigure(0, weight=1)
+
+        self.left_sidebar = tk.Frame(self.padding_frame, highlightthickness=0)
+        self.right_sidebar = tk.Frame(self.padding_frame, highlightthickness=0)
 
         # Initialize game state
-        self.game_state = GameState()
+        self.game = ChessGame()
         self.selected_square = None
         self._possible_moves = []
 
         # Create UI elements
-        self.board = Board(self.content_frame)
-        self.board.load_piece_positions(self.game_state)
+        self.board = Board(self.board_frame)
+        self.board.load_piece_positions(self.game.state)
         self.board._canvas.bind("<Button-1>", self.on_click_callback)
-
-        self.white_selector = PromotionSelector(self.content_frame, (6, 1), True, False)
-        self.black_selector = PromotionSelector(
-            self.content_frame, (1, 6), False, False
+        self.white_selector = PromotionSelector(self.board_frame, (6, 1), True, False)
+        self.black_selector = PromotionSelector(self.board_frame, (1, 6), False, False)
+        self.eval_bar = EvalBar(self.left_sidebar)
+        self.moves_overview = SecondSideBar(
+            self.right_sidebar, self.game.move_tree, self.change_position_callback
         )
+
+        # Engine
+        self.engine = Stockfish(path=_stockfish_exe)
+        self.engine.set_fen_position(self.game.state.to_fen_string())
+        self.eval_bar.update_eval(self.engine.get_evaluation())
+        self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
 
     def enforce_aspect_ratio(self, event: tk.Event):
         """
@@ -64,14 +84,57 @@ class GameUI:
         Returns:
             None
         """
-        desired_size = min(event.width, event.height)
-        self.content_frame.place(
-            in_=self.padding_frame, x=0, y=0, width=desired_size, height=desired_size
+        left_sidebar_width = min(100, int(0.1 * event.width))
+        right_sidebar_width = min(250, 0.25 * event.width)
+        right_side_bar_height = 0.2 * event.height
+        if (
+            event.height - right_side_bar_height
+            > event.width - right_sidebar_width - left_sidebar_width
+        ):
+            desired_size = min(
+                event.width - left_sidebar_width, event.height - right_side_bar_height
+            )
+            right_sidebar_width = desired_size
+            right_side_bar_pos = (left_sidebar_width, desired_size)
+            y0 = 0
+        else:
+            right_sidebar_width = min(250, 0.25 * event.width)
+            desired_size = min(event.height, event.width - left_sidebar_width - right_sidebar_width)
+            right_side_bar_height = desired_size
+            right_side_bar_pos = (left_sidebar_width + desired_size, 0)
+
+            y0 = (event.height - desired_size) // 3
+
+        self.board_frame.place(
+            in_=self.padding_frame,
+            x=left_sidebar_width,
+            y=y0,
+            width=desired_size,
+            height=desired_size,
+        )
+
+        self.left_sidebar.place(
+            in_=self.padding_frame,
+            x=0,
+            y=y0,
+            width=left_sidebar_width,
+            height=desired_size,
+        )
+
+        self.right_sidebar.place(
+            in_=self.padding_frame,
+            x=right_side_bar_pos[0],
+            y=y0 + right_side_bar_pos[1],
+            width=right_sidebar_width,
+            height=right_side_bar_height,
         )
 
     def on_click_callback(self, event):
         """Callback for clicks on the board"""
         # Check whether a square has already been selected
+        if (self.game.move_tree.pointer != self.game.move_tree.tip):
+            return
+        
         square = self.board.get_square_from_coords(event.x, event.y)
         if self.selected_square is None:
             self.select_square(square)
@@ -80,14 +143,18 @@ class GameUI:
             self.clear_selection()
             for move in self._possible_moves:
                 if square.coords == move.target:
-                    if move.is_promotion:
-                        selector = getattr(self, f"{self.game_state.active_color}_selector")
+                    if self.game.leads_to_promotion(move):
+                        selector = getattr(self, f"{self.game.state.active_color}_selector")
                         selector.open(move.target, callback=partial(self.move_piece, move))
                     else:
                         self.move_piece(move)
                     break
             else:
                 self.on_click_callback(event)
+
+        result = self.game.game_result()
+        if result is not None:
+            GameResultScreen(self.board_frame, result)
 
     def select_square(self, square: Square) -> None:
         """Select a square on the chess board to highlight possible moves
@@ -97,11 +164,11 @@ class GameUI:
         """
         # Check if selected square is occupied and by a piece of the active color
         self.board.hide_moves()
-        piece = self.game_state.get_piece_on(*square.coords)
+        piece = self.game.state.get_piece_on(*square.coords)
         if piece is not None:
-            if piece.color == self.game_state.get_active_color():
+            if piece.color == self.game.state.get_active_color():
                 self.board.select_square(square.row, square.col)
-                self._possible_moves = get_possible_moves_from(square.coords, self.game_state)
+                self._possible_moves = self.game.get_possible_moves_from(square.coords)
                 self.board.show_moves(self._possible_moves)
                 self.selected_square = square
 
@@ -113,5 +180,16 @@ class GameUI:
 
     def move_piece(self, move: Move, promote_to: ChessPiece = None):
         move.promote_to = promote_to
-        self.game_state.make_move(move)
+        self.game.make_move(move)
         self.board.make_move(move)
+        self.moves_overview.make_move(self.game.move_tree.pointer)
+        self.engine.set_fen_position(self.game.state.to_fen_string())
+        if self.eval_proc.is_alive():
+            self.eval_proc.kill()
+        self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
+        self.eval_proc.run()
+
+    def change_position_callback(self, node: GameTreeNode):
+        self.clear_selection()
+        self.game.goto(node)
+        self.board.load_piece_positions(self.game.state)

@@ -1,5 +1,5 @@
-""" Implements a graphical interface for allowing users to selecting a piece
-    when promoting a pawn."""
+"""Implements a graphical interface for allowing users to selecting a piece
+when promoting a pawn."""
 
 from pathlib import Path
 
@@ -36,9 +36,10 @@ class PromotionSelector:
         self._pieces = []
         pieces = "QRBN" if color_is_white else "nbrq"
         for i, p in enumerate(pieces):
-            piece = ChessPiece(Stockfish.Piece(p), 7 - i, 0)
+            piece = ChessPiece(Stockfish.Piece(p), i, 0)
             self._pieces.append(piece)
-            self._svgs.append(ChessPieceSVG(piece, self._options_canvas, 1.0))
+            self._svgs.append(ChessPieceSVG(piece, self._options_canvas, (1., 0.25)))
+        self.cross_svg = None
 
         self._options_canvas.bind("<Button-1>", self.select)
         self._canvas.bind("<Button-1>", self.cancel)
@@ -46,7 +47,7 @@ class PromotionSelector:
 
     @property
     def _is_at_top(self):
-        return self.position[0] > 4
+        return self.position[0] < 4
 
     @property
     def _width(self):
@@ -80,9 +81,9 @@ class PromotionSelector:
             canvas_height = container_size / 2 + button_height
 
             canvas_posx = container_size * self.position[1] / 8
-            canvas_poxy = (7 - self.position[0]) * canvas_width
+            canvas_posy = self.position[0] * canvas_width
             if not self._is_at_top:
-                canvas_poxy += canvas_width - canvas_height
+                canvas_posy += canvas_width - canvas_height
 
             if self._is_at_top:
                 button_posy = canvas_height - button_height / 2
@@ -92,7 +93,7 @@ class PromotionSelector:
             self._canvas.place(
                 in_=self.container,
                 x=canvas_posx,
-                y=canvas_poxy,
+                y=canvas_posy,
                 width=canvas_width,
                 height=canvas_height,
             )
@@ -109,9 +110,7 @@ class PromotionSelector:
                 data=Path("chessgui/icons/Cross.svg").read_text("UTF-8"),
                 scaletoheight=max(1, canvas_width),
             )
-            self._canvas.create_image(
-                canvas_width / 2, button_posy, image=self.cross_svg
-            )
+            self._canvas.create_image(canvas_width / 2, button_posy, image=self.cross_svg)
 
     def hide(self):
         """Hide graphical element"""
