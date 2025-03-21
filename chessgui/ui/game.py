@@ -189,8 +189,8 @@ class GameUI:
         self.game.make_move(move)
         self.board.make_move(move)
         self.moves_overview.make_move(self.game.move_tree.pointer)
-        self.engine.set_fen_position(self.game.state.to_fen_string())
-        if self.eval_proc is not None:
+        if self.engine is not None:
+            self.engine.set_fen_position(self.game.state.to_fen_string())
             if self.eval_proc.is_alive():
                 self.eval_proc.kill()
             self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
