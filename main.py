@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.font import Font
+import tkinter.filedialog as filedialog
 
 from chessgui import GameUI
 
@@ -29,6 +30,7 @@ class ChessGUI:
         add_game_button.pack(side="top")
 
         self.tk_tab_control.pack(expand=1, fill="both", side="bottom")
+        self._stockfish_exe = filedialog.askopenfilename()
 
         self.add_game_tab()
 
@@ -39,7 +41,7 @@ class ChessGUI:
         tab = ttk.Frame(self.tk_tab_control, padding=(10, 10, 0, 0))
         tab.pack(expand=1, fill="both", side="bottom")
         self.tk_tab_control.add(tab, text=f"Game {idx}")
-        self.boards[idx] = GameUI(tab)
+        self.boards[idx] = GameUI(tab, self._stockfish_exe)
 
     def mainloop(self):
         """Enter mainloop"""

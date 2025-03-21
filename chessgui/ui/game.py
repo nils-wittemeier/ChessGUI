@@ -21,9 +21,6 @@ from .promotion_selector import PromotionSelector
 from .square import Square
 from .result_screen import GameResultScreen
 
-_stockfish_root = Path("/Users/Juijan/stockfish")
-_stockfish_exe = _stockfish_root / "stockfish-windows-x86-64-avx2.exe"
-
 
 class GameUI:
     """
@@ -34,7 +31,7 @@ class GameUI:
                             tkinter Frame object.
     """
 
-    def __init__(self, parent: tk.Frame):
+    def __init__(self, parent: tk.Frame, stockfish_exe: str):
         self.parent = parent
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
@@ -69,10 +66,19 @@ class GameUI:
         )
 
         # Engine
-        self.engine = Stockfish(path=_stockfish_exe)
-        self.engine.set_fen_position(self.game.state.to_fen_string())
-        self.eval_bar.update_eval(self.engine.get_evaluation())
-        self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
+        if Path(stockfish_exe).is_file():
+            try:
+                self.engine = Stockfish(path=stockfish_exe)
+            except OSError:
+                tk.messagebox.showwarning("No engine selected", "Warning: selected executable could not be loaded.")
+
+            self.engine.set_fen_position(self.game.state.to_fen_string())
+            self.eval_bar.update_eval(self.engine.get_evaluation())
+            self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
+        else:
+            tk.messagebox.showwarning("No engine selected", "Warning: no valid stockfish executable was selected.")
+            self.engine = None
+            self.eval_proc = None
 
     def enforce_aspect_ratio(self, event: tk.Event):
         """
@@ -184,10 +190,11 @@ class GameUI:
         self.board.make_move(move)
         self.moves_overview.make_move(self.game.move_tree.pointer)
         self.engine.set_fen_position(self.game.state.to_fen_string())
-        if self.eval_proc.is_alive():
-            self.eval_proc.kill()
-        self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
-        self.eval_proc.run()
+        if self.eval_proc is not None:
+            if self.eval_proc.is_alive():
+                self.eval_proc.kill()
+            self.eval_proc = Process(target=self.eval_bar.update_eval(self.engine.get_evaluation()))
+            self.eval_proc.run()
 
     def change_position_callback(self, node: GameTreeNode):
         self.clear_selection()
