@@ -158,7 +158,7 @@ class SecondSideBar:
 
     def _configure_parent(self, event):
         interior_width = min(400, event.width - self.vscrollbar.winfo_reqwidth())
-        # self.moves_canvas.configure(width=interior_width)
+        self.moves_canvas.configure(width=interior_width)
         self.moves_canvas.moveto(self.num_id, 10, 10)
         self.moves_canvas.itemconfigure(self.num_id, width=int(interior_width / 5))
         self.moves_canvas.moveto(self.white_id, 10 + int(interior_width / 5), 10)
