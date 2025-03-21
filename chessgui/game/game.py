@@ -492,7 +492,7 @@ class ChessGame:
             promotion_options = promotion_options.upper()
 
         def append_move(state, origin, target):
-            if not include_promotion_options:
+            if not include_promotion_options or not target[0] in [0,7] :
                 possible_moves.append(ChessGame._generate_move(state, origin, target))
             else:
                 for promote_to in promotion_options:
