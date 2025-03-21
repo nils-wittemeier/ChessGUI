@@ -1,8 +1,8 @@
-from pathlib import Path
 from functools import partial
 import tkinter as tk
 from tkinter.font import Font
 
+from ..files import get_icon
 from .svg import SVGContainer
 from ..game.tree import GameTree, GameTreeNode
 
@@ -21,25 +21,25 @@ class SecondSideBar:
         self.first_button = tk.Canvas(self.controls_canvas, height=25, bg='#cccccc', highlightthickness=0)
         self.first_button.grid(row=0, column=0, sticky=tk.NSEW)
         self.controls_canvas.columnconfigure(0, weight=1)
-        self.first_svg = SVGContainer(Path("chessgui/icons/First.svg"), self.first_button, posx=0, posy=0, scale=(1,0.8), centered=True)
+        self.first_svg = SVGContainer(get_icon('First'), self.first_button, posx=0, posy=0, scale=(1,0.8), centered=True)
         self.first_button.bind("<Button-1>", self.goto_first_pos)
         #
         self.prev_button = tk.Canvas(self.controls_canvas, height=25, bg='#cccccc', highlightthickness=0)
         self.prev_button.grid(row=0, column=1, sticky=tk.NSEW)
         self.controls_canvas.columnconfigure(1, weight=1)
-        self.prev_svg = SVGContainer(Path("chessgui/icons/Prev.svg"), self.prev_button, posx=0, posy=0, scale=(1,0.8), centered=True)
+        self.prev_svg = SVGContainer(get_icon('Prev'), self.prev_button, posx=0, posy=0, scale=(1,0.8), centered=True)
         self.prev_button.bind("<Button-1>", self.goto_prev_pos)
         #
         self.next_button = tk.Canvas(self.controls_canvas, height=25, bg='#cccccc', highlightthickness=0)
         self.next_button.grid(row=0, column=2, sticky=tk.NSEW)
         self.controls_canvas.columnconfigure(2, weight=1)
-        self.next_svg = SVGContainer(Path("chessgui/icons/Next.svg"), self.next_button, posx=0, posy=0, scale=(1,0.8), centered=True)
+        self.next_svg = SVGContainer(get_icon('Next'), self.next_button, posx=0, posy=0, scale=(1,0.8), centered=True)
         self.next_button.bind("<Button-1>", self.goto_next_pos)
         #
         self.last_button = tk.Canvas(self.controls_canvas, height=25, bg='#cccccc', highlightthickness=0)
         self.last_button.grid(row=0, column=3, sticky=tk.NSEW)
         self.controls_canvas.columnconfigure(3, weight=1)
-        self.last_svg = SVGContainer(Path("chessgui/icons/Last.svg"), self.last_button, posx=0, posy=0, scale=(1,0.8), centered=True)
+        self.last_svg = SVGContainer(get_icon('Last'), self.last_button, posx=0, posy=0, scale=(1,0.8), centered=True)
         self.last_button.bind("<Button-1>", self.goto_last_pos)
 
         # Create a canvas object and a vertical scrollbar for scrolling it.

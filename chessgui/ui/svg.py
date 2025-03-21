@@ -11,29 +11,29 @@ piece type for convenience.
 """
 
 import tkinter as tk
-from pathlib import Path
 from typing import Optional
 
 import tksvg
 
+from ..files import get_icon
 from ..game.piece import ChessPiece
 
 _PIECE_SVGS = {
     "white": {
-        "King": Path("chessgui/icons/Chess_klt45.svg"),
-        "Queen": Path("chessgui/icons/Chess_qlt45.svg"),
-        "Rook": Path("chessgui/icons/Chess_rlt45.svg"),
-        "Bishop": Path("chessgui/icons/Chess_blt45.svg"),
-        "Knight": Path("chessgui/icons/Chess_nlt45.svg"),
-        "Pawn": Path("chessgui/icons/Chess_plt45.svg"),
+        "King": get_icon("Chess_klt45"),
+        "Queen": get_icon("Chess_qlt45"),
+        "Rook": get_icon("Chess_rlt45"),
+        "Bishop": get_icon("Chess_blt45"),
+        "Knight": get_icon("Chess_nlt45"),
+        "Pawn": get_icon("Chess_plt45"),
     },
     "black": {
-        "King": Path("chessgui/icons/Chess_kdt45.svg"),
-        "Queen": Path("chessgui/icons/Chess_qdt45.svg"),
-        "Rook": Path("chessgui/icons/Chess_rdt45.svg"),
-        "Bishop": Path("chessgui/icons/Chess_bdt45.svg"),
-        "Knight": Path("chessgui/icons/Chess_ndt45.svg"),
-        "Pawn": Path("chessgui/icons/Chess_pdt45.svg"),
+        "King": get_icon("Chess_kdt45"),
+        "Queen": get_icon("Chess_qdt45"),
+        "Rook": get_icon("Chess_rdt45"),
+        "Bishop": get_icon("Chess_bdt45"),
+        "Knight": get_icon("Chess_ndt45"),
+        "Pawn": get_icon("Chess_pdt45"),
     },
 }
 

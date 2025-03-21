@@ -1,10 +1,10 @@
 """This module implements the squares on the chess board as a graphical elements"""
 
-from pathlib import Path
 
 import tkinter as tk
 from tkinter.font import Font
 
+from ..files import get_icon
 from .svg import SVGContainer
 from .colors import _COLORS
 
@@ -42,7 +42,7 @@ class Square:
         )
 
         self._circlesvg = SVGContainer(
-            Path("chessgui/icons/Circle.svg"),
+            get_icon("Circle"),
             self._canvas,
             posx=self._x + self._size / 2,
             posy=self._y + self._size / 2,
@@ -51,7 +51,7 @@ class Square:
         self._circlesvg.remove()
 
         self._dotsvg = SVGContainer(
-            Path("chessgui/icons/Dot.svg"),
+            get_icon("Dot"),
             self._canvas,
             posx=self._x + self._size / 2,
             posy=self._y + self._size / 2,

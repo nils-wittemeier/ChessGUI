@@ -1,7 +1,6 @@
 """This module defines the Game class, which handles the current games state
 and check that the game rules."""
 
-from pathlib import Path
 from typing import Optional
 
 from .utils import index_to_algebraic, algebraic_to_index
@@ -9,7 +8,7 @@ from .piece import ChessPiece
 
 _STARTING_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 # _STARTING_POS = "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1"
-_STARTING_POS = "8/P6k/8/8/8/8/K6p/8 w - - 0 1"
+# _STARTING_POS = "8/P6k/8/8/8/8/K6p/8 w - - 0 1"
 # _STARTING_POS = "7k/Q7/6K1/8/8/8/8/8 w - - 0 1"
 # _STARTING_POS = "7K/q7/6k1/8/8/8/8/8 w - - 0 1"
 # _STARTING_POS = "8/8/8/5k2/3K4/8/8/8 w - - 0 1"

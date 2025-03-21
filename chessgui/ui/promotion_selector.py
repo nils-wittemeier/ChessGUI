@@ -1,12 +1,11 @@
 """Implements a graphical interface for allowing users to selecting a piece
 when promoting a pawn."""
 
-from pathlib import Path
-
 import tkinter as tk
 import tksvg
 from stockfish import Stockfish
 
+from ..files import get_icon
 from .svg import ChessPieceSVG
 from ..game.piece import ChessPiece
 
@@ -107,7 +106,7 @@ class PromotionSelector:
             )
 
             self.cross_svg = tksvg.SvgImage(
-                data=Path("chessgui/icons/Cross.svg").read_text("UTF-8"),
+                data=get_icon("Cross").read_text("UTF-8"),
                 scaletoheight=max(1, canvas_width),
             )
             self._canvas.create_image(canvas_width / 2, button_posy, image=self.cross_svg)
