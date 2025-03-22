@@ -61,6 +61,7 @@ class ChessGame:
         if not move in self.get_possible_moves_from(move.origin, include_promotion_options=True):
             raise IllegalMoveError(f"{move} is not legal in the current position.")
 
+        smith_str = self.move_to_smith(move)
         # self._move_graph.current_tip.append(move)
         self.state.is_white_active = not self.state.is_white_active
         if move.is_castling:
@@ -127,7 +128,7 @@ class ChessGame:
 
             self.state.place_piece_on(*move.origin, None)
 
-        self.move_tree.make_move(move, self.move_to_smith(move), self.state.to_fen_string())
+        self.move_tree.make_move(move, smith_str, self.state.to_fen_string())
 
     def get_all_legal_moves(self):
         moves = []
@@ -135,7 +136,7 @@ class ChessGame:
             for col in range(8):
                 piece = self.state.get_piece_on(row, col)
                 if piece is not None and piece.color == self.state.active_color:
-                    moves += self.get_possible_moves_from((row, col))
+                    moves += self._get_possible_moves_from((row, col), self.state, check_safe=False)
 
         return moves
 
@@ -522,15 +523,9 @@ class ChessGame:
                 if state.is_occupied(*target):
                     if state.get_piece_on(*target).is_white != is_white:
                         append_move(state, origin, target)
-
-        # En passant capture check
-        enpassant_offsets = [(-1, -1), (-1, 1)] if is_white else [(1, -1), (1, 1)]
-        for offset in enpassant_offsets:
-            target = (origin[0] + offset[0], origin[1] + offset[1])
-            if 0 <= target[0] < 8 and 0 <= target[1] < 8:
-                if state.is_enpassant_target(*target):
+                elif state.is_en_passant_target(*target):
                     append_move(state, origin, target)
-
+                        
         return possible_moves
 
     @staticmethod
@@ -553,6 +548,7 @@ class ChessGame:
         temp_state = deepcopy(state)
         temp_state.place_piece_on(*move.target, copy(move.piece))
         temp_state.place_piece_on(*move.origin, None)
+        temp_state.en_passant_target = None
 
         # Check if the king is in check after the move
         king_square = temp_state.find_king(move.piece.color)
@@ -621,9 +617,9 @@ class ChessGame:
         else:
             if piece.name == "Pawn" and target == state.en_passant_target:
                 if state.en_passant_target[0] == 2:
-                    captured_piece = state.get_piece_on(4, target[1])
-                else:
                     captured_piece = state.get_piece_on(3, target[1])
+                else:
+                    captured_piece = state.get_piece_on(4, target[1])
 
         # Promotions
         if promote_to is not None:

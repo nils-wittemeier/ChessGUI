@@ -59,7 +59,8 @@ class Move:
 
             if captured_piece.color == self.piece.color:
                 raise IllegalMoveError(
-                    "The captured piece's has the same color as the capturing piece."
+                    "The captured piece's has the same color as the capturing piece.",
+                    self.origin, self.piece, self.target, captured_piece
                 )
         self.captured_piece = captured_piece
 
